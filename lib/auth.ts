@@ -23,6 +23,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.accessToken = account.access_token;
       }
       return token;
-    },
-  },
+    }
+  }
 });

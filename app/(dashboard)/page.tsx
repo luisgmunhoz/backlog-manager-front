@@ -1,28 +1,24 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { File, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useSession } from 'next-auth/react';
 
-export default function ProductsPage(props: { searchParams: Promise<{ q: string; offset: string }> }) {
-  const [token, setToken] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchToken = async () => {
-      try {
-        const response = await fetch('/api/auth/token');
-        const data = await response.json();
-        setToken(data.token);
-      } catch (error) {
-        console.error('Error fetching token:', error);
-      }
-    };
-
-    fetchToken();
-  }, []);
+export default function ProductsPage() {
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   return (
     <Tabs defaultValue="all">
+      {token && (
+        <div className="mb-4">
+          <Badge variant="secondary" className="text-xs">
+            Access Token: {token}
+          </Badge>
+        </div>
+      )}
       <div className="flex items-center">
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
@@ -39,26 +35,33 @@ export default function ProductsPage(props: { searchParams: Promise<{ q: string;
               Export
             </span>
           </Button>
-          <Button size="sm" className="h-8 gap-1" onClick={async () => {
-            try {
-              const resp = await fetch("http://localhost:8000/authenticated-ping", {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": "Bearer " + token,
-                },
-              });
+          <Button 
+            size="sm" 
+            className="h-8 gap-1" 
+            disabled={!token}
+            onClick={async () => {
+              if (!token) return;
 
-              if (!resp.ok) {
-                throw new Error(`HTTP error! status: ${resp.status}`);
+              try {
+                const resp = await fetch("http://localhost:8000/authenticated-ping", {
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token,
+                  },
+                });
+
+                if (!resp.ok) {
+                  throw new Error(`HTTP error! status: ${resp.status}`);
+                }
+
+                const data = await resp.json();
+                console.log(data);
+              } catch (error) {
+                console.error('Error fetching data:', error);
               }
-
-              const data = await resp.json();
-              console.log(data);
-            } catch (error) {
-              console.error('Error fetching data:', error);
-            }
-          }}>
+            }}
+          >
             <PlusCircle className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
               Fetch Data
@@ -66,8 +69,6 @@ export default function ProductsPage(props: { searchParams: Promise<{ q: string;
           </Button>
         </div>
       </div>
-      {/* Use the token as needed */}
-      {token && <div>Token: {token}</div>}
     </Tabs>
   );
 }
